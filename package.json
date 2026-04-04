@@ -1,0 +1,26 @@
+{
+  "name": "opententacle.github.io",
+  "private": true,
+  "version": "1.0.0",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "biome check .",
+    "fix": "biome check --fix ."
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
+    "dompurify": "^3.3.3",
+    "lit": "^3.3.2",
+    "marked": "^17.0.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
+    "@types/dompurify": "^3.0.5",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.7"
+  }
+}
