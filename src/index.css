@@ -156,7 +156,7 @@ ot-app .app-main > * {
 
 @media (min-width: 1024px) {
   ot-app .app-main > * {
-    width: min(100%, 72ch);
+    width: min(100%, 60vw);
     margin-inline: auto;
   }
 }
