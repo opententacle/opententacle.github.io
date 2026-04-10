@@ -656,6 +656,21 @@ ot-article .prose .article-ref-index {
 
 ot-article .prose .article-ref-linkline {
   margin-left: 2rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+ot-article .prose .article-ref-linkline a {
+  display: inline;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 767px) {
+  ot-article .prose .article-ref-linkline {
+    margin-left: 1.55rem;
+  }
 }
 
 /* -----------------------------------------------------------------------------
