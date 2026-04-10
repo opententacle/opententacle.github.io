@@ -105,6 +105,13 @@ The **dev** server uses a small middleware (`spa-dev-fallback`) to mirror the sa
 
 The workflow **`.github/workflows/release.yml`** runs on pushes to **`main`**: `npm ci`, `npm run build`, uploads **`dist`** to GitHub Pages. Ensure the repository’s **Pages** source is set to **GitHub Actions** (or your chosen source) in the repo settings.
 
+### Analytics environment variables
+
+- **`VITE_POSTHOG_KEY`** enables PostHog analytics when set at build time.
+- **`VITE_POSTHOG_HOST`** is optional and defaults to **`https://eu.i.posthog.com`**.
+- The app uses cookieless tracking via in-memory persistence (no cookies/localStorage).
+- In GitHub Actions, add a repository secret named **`POSTHOG_API_KEY`**. The release workflow maps it to **`VITE_POSTHOG_KEY`** during `npm run build`.
+
 ## UI stack notes
 
 - **Lit** custom elements use the **`ot-`** prefix (e.g. `ot-app`, `ot-blog`, `ot-article`).

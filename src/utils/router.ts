@@ -1,7 +1,12 @@
 /** Vite base, e.g. "/" or "/repo/" */
 export const base = import.meta.env.BASE_URL;
 
-export type AppRoute = { kind: "list" } | { kind: "article"; slug: string } | { kind: "contributors" };
+export type AppRoute =
+  | { kind: "list" }
+  | { kind: "article"; slug: string }
+  | { kind: "contributors" }
+  | { kind: "privacy" }
+  | { kind: "imprint" };
 
 export const APP_NAVIGATE_EVENT = "ot-app-navigate";
 
@@ -31,6 +36,12 @@ export function pathToRoute(pathname: string): AppRoute {
   if (parts[0] === "contributors") {
     return { kind: "contributors" };
   }
+  if (parts[0] === "privacy") {
+    return { kind: "privacy" };
+  }
+  if (parts[0] === "imprint") {
+    return { kind: "imprint" };
+  }
   return { kind: "list" };
 }
 
@@ -45,6 +56,14 @@ export function hrefForHome(): string {
 
 export function hrefForContributors(): string {
   return `${base}contributors`;
+}
+
+export function hrefForPrivacy(): string {
+  return `${base}privacy`;
+}
+
+export function hrefForImprint(): string {
+  return `${base}imprint`;
 }
 
 /** Contributors page with hash for scrolling to a profile card (`id` on the card). */

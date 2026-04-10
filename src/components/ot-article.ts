@@ -3,6 +3,9 @@ import { html, LitElement, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { marked } from "marked";
+import { captureArticleViewed } from "../analytics/posthog.js";
+import { resolveContributorForArticle } from "../data/contributors.js";
+import "./ot-share-links.js";
 import { buildArticleViewMetaItems } from "../utils/article-meta.js";
 import { getArticleBySlug, resolveArticleAssetUrl } from "../utils/articles.js";
 import { handleInternalNav, hrefForHome } from "../utils/router.js";
@@ -22,6 +25,7 @@ export class OtArticle extends LitElement {
   @state() private sanitizedHtml = "";
 
   @state() private notFound = false;
+  private lastTrackedSlug = "";
 
   connectedCallback() {
     super.connectedCallback();
@@ -70,36 +74,60 @@ export class OtArticle extends LitElement {
     const bodyHtml = marked.parse(markdownWithImageAttrs, { async: false, renderer }) as string;
     const referencesHtml = buildReferencesHtml(references);
     this.sanitizedHtml = DOMPurify.sanitize(`${bodyHtml}${referencesHtml}`);
+    if (this.lastTrackedSlug !== article.slug) {
+      captureArticleViewed({
+        slug: article.slug,
+        title: article.title,
+        hasAuthorProfile: Boolean(resolveContributorForArticle(article.meta)),
+      });
+      this.lastTrackedSlug = article.slug;
+    }
+  }
+
+  private renderMissingArticle() {
+    return html`
+      <section class="wrap">
+        <a class="back" href=${hrefForHome()} @click=${handleInternalNav}><i class="fa-solid fa-arrow-left"></i> Unpopular Opinions</a>
+        <p class="missing">No article found for <code>${this.slug}</code>.</p>
+      </section>
+    `;
   }
 
   render() {
     if (this.notFound) {
-      return html`
-        <section class="wrap">
-          <a class="back" href=${hrefForHome()} @click=${handleInternalNav}><i class="fa-solid fa-arrow-left"></i> blog</a>
-          <p class="missing">No article found for <code>${this.slug}</code>.</p>
-        </section>
-      `;
+      return this.renderMissingArticle();
     }
     const article = getArticleBySlug(this.slug);
     if (!article) {
-      return html`
-        <section class="wrap">
-          <a class="back" href=${hrefForHome()} @click=${handleInternalNav}><i class="fa-solid fa-arrow-left"></i> blog</a>
-          <p class="missing">No article found for <code>${this.slug}</code>.</p>
-        </section>
-      `;
+      return this.renderMissingArticle();
     }
     const metaItems = buildArticleViewMetaItems(article.meta);
     const metaRow = metaItems.length > 0 ? html`<div class="meta article-meta">${metaItems}</div>` : "";
+    const noAiSupport = isExplicitlyNotAiAssisted(article.meta.aiAssisted);
     return html`
       <section class="wrap">
-        <a class="back" href=${hrefForHome()} @click=${handleInternalNav}><i class="fa-solid fa-arrow-left"></i> blog</a>
+        <a class="back" href=${hrefForHome()} @click=${handleInternalNav}><i class="fa-solid fa-arrow-left"></i> Unpopular Opinions</a>
         ${metaRow}
+        ${
+          noAiSupport
+            ? html`
+          <p class="quality-disclaimer" role="note" aria-label="Writing quality note">
+            This article was written <b>without</b> support of LLMs or <i>"AI"</i>
+          </p>
+        `
+            : ""
+        }
+        <ot-share-links .slug=${article.slug} .title=${article.title}></ot-share-links>
         <article class="prose">${unsafeHTML(this.sanitizedHtml)}</article>
       </section>
     `;
   }
+}
+
+function isExplicitlyNotAiAssisted(value: string | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return ["no", "false", "0", "none", "n"].includes(normalized);
 }
 
 function escapeHtml(value: string): string {
@@ -142,7 +170,15 @@ function buildReferencesHtml(refs: Array<{ href: string; label: string }>): stri
     .map((ref, idx) => {
       const n = idx + 1;
       const label = ref.label?.trim() ? ref.label.trim() : ref.href;
-      return `<li id="article-ref-${n}">[${n}] ${escapeHtml(label)} - <a href="${escapeHtml(ref.href)}">${escapeHtml(ref.href)}</a></li>`;
+      return `<li id="article-ref-${n}">
+        <div class="article-ref-main">
+          <span class="article-ref-index">[${n}]</span>
+          <span class="article-ref-label">${escapeHtml(label)}</span>
+        </div>
+        <div class="article-ref-linkline">
+          <a href="${escapeHtml(ref.href)}">${escapeHtml(ref.href)}</a>
+        </div>
+      </li>`;
     })
     .join("");
   return `<hr><section class="article-references"><h2>References</h2><ol>${items}</ol></section>`;
