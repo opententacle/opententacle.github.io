@@ -17,7 +17,7 @@ export class OtBlog extends LitElement {
     const articles = getArticles();
     return html`
       <section class="wrap">
-        <h1 class="title">blog</h1>
+        <h1 class="title">Unpopular Opinions</h1>
         ${
           articles.length === 0
             ? html`<p class="empty">No articles yet</p>`

@@ -34,7 +34,7 @@ const NON_MD_ASSET_MODULES = import.meta.glob(
 const ARTICLE_ASSET_URLS = new Map<string, string>();
 for (const [path, value] of Object.entries(NON_MD_ASSET_MODULES)) {
   if (typeof value !== "string") continue;
-  ARTICLE_ASSET_URLS.set(normalizePath(path), value);
+  ARTICLE_ASSET_URLS.set(normalizeRelativePath(path), value);
 }
 
 /** Leading consecutive `> key: value` lines (OpenTentacle front matter). */

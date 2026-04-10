@@ -48,13 +48,17 @@ export class OtArticle extends LitElement {
       return;
     }
     this.notFound = false;
+    const referenceIndexByHref = new Map<string, number>();
+    const references: Array<{ href: string; label: string }> = [];
     const renderer = new marked.Renderer();
     renderer.link = function ({ href, title, tokens }) {
       const text = this.parser.parseInline(tokens);
       const safeHref = cleanHref(resolveArticleAssetUrl(article.slug, href ?? ""));
       if (!safeHref) return text;
+      const refNumber = getReferenceNumber(safeHref, stripHtml(text), referenceIndexByHref, references);
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
-      return `<a href="${escapeHtml(safeHref)}"${titleAttr}>${text}</a>`;
+      const marker = `<sup class="article-ref-marker"><a href="#article-ref-${refNumber}">[${refNumber}]</a></sup>`;
+      return `<a href="${escapeHtml(safeHref)}"${titleAttr}>${text}</a>${marker}`;
     };
     renderer.image = ({ href, title, text }) => {
       const safeSrc = cleanHref(resolveArticleAssetUrl(article.slug, href ?? ""));
@@ -62,8 +66,10 @@ export class OtArticle extends LitElement {
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
       return `<img src="${escapeHtml(safeSrc)}" alt="${escapeHtml(text)}"${titleAttr}>`;
     };
-    const rawHtml = marked.parse(article.bodyMarkdown, { async: false, renderer }) as string;
-    this.sanitizedHtml = DOMPurify.sanitize(rawHtml);
+    const markdownWithImageAttrs = transformAttributedImages(article.bodyMarkdown, article.slug);
+    const bodyHtml = marked.parse(markdownWithImageAttrs, { async: false, renderer }) as string;
+    const referencesHtml = buildReferencesHtml(references);
+    this.sanitizedHtml = DOMPurify.sanitize(`${bodyHtml}${referencesHtml}`);
   }
 
   render() {
@@ -110,6 +116,79 @@ function cleanHref(value: string): string {
   if (!href) return "";
   if (/^javascript:/i.test(href)) return "";
   return href;
+}
+
+function getReferenceNumber(
+  href: string,
+  label: string,
+  indexByHref: Map<string, number>,
+  refs: Array<{ href: string; label: string }>,
+): number {
+  const existing = indexByHref.get(href);
+  if (existing !== undefined) {
+    const entry = refs[existing - 1];
+    if (entry && !entry.label && label) entry.label = label;
+    return existing;
+  }
+  const next = refs.length + 1;
+  indexByHref.set(href, next);
+  refs.push({ href, label });
+  return next;
+}
+
+function buildReferencesHtml(refs: Array<{ href: string; label: string }>): string {
+  if (refs.length === 0) return "";
+  const items = refs
+    .map((ref, idx) => {
+      const n = idx + 1;
+      const label = ref.label?.trim() ? ref.label.trim() : ref.href;
+      return `<li id="article-ref-${n}">[${n}] ${escapeHtml(label)} - <a href="${escapeHtml(ref.href)}">${escapeHtml(ref.href)}</a></li>`;
+    })
+    .join("");
+  return `<hr><section class="article-references"><h2>References</h2><ol>${items}</ol></section>`;
+}
+
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function transformAttributedImages(markdown: string, slug: string): string {
+  const imageWithAttrs = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\{([^}]+)\}/g;
+  return markdown.replace(imageWithAttrs, (_m, alt: string, rawSrc: string, title: string | undefined, rawAttrs: string) => {
+    const src = cleanHref(resolveArticleAssetUrl(slug, rawSrc));
+    if (!src) return "";
+
+    const attrs = parseImageAttrs(rawAttrs);
+    const widthAttr = attrs.width ? ` width="${escapeHtml(attrs.width)}"` : "";
+    const heightAttr = attrs.height ? ` height="${escapeHtml(attrs.height)}"` : "";
+    const classAttr = attrs.className ? ` class="${escapeHtml(attrs.className)}"` : "";
+    const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
+    return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${titleAttr}${widthAttr}${heightAttr}${classAttr}>`;
+  });
+}
+
+function parseImageAttrs(raw: string): { width?: string; height?: string; className?: string } {
+  const out: { width?: string; height?: string; className?: string } = {};
+  const parts = raw.trim().split(/\s+/);
+  for (const part of parts) {
+    const match = part.match(/^([a-zA-Z-]+)=(.+)$/);
+    if (!match) continue;
+    const key = match[1].toLowerCase();
+    const value = match[2].replace(/^["']|["']$/g, "").trim();
+    if (!value) continue;
+    if (key === "width" && isValidDimension(value)) out.width = value;
+    else if (key === "height" && isValidDimension(value)) out.height = value;
+    else if (key === "class" && isValidClassName(value)) out.className = value;
+  }
+  return out;
+}
+
+function isValidDimension(value: string): boolean {
+  return /^\d+(?:px|%)?$/.test(value);
+}
+
+function isValidClassName(value: string): boolean {
+  return /^[a-zA-Z0-9_-]+(?:\s+[a-zA-Z0-9_-]+)*$/.test(value);
 }
 
 declare global {

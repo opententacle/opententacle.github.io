@@ -140,6 +140,17 @@ ot-app .app-main {
   flex: 1 1 auto;
 }
 
+/* Shared content width for all rendered main content */
+ot-app .app-main > * {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  ot-app .app-main > * {
+    max-width: 60vw;
+  }
+}
+
 /* Sticky footer: stays at bottom when content is short; follows content when long */
 ot-footer {
   display: block;
@@ -188,7 +199,6 @@ ot-footer .site-footer-sep {
 ot-imprint {
   display: block;
   width: 100%;
-  max-width: 42rem;
 }
 
 ot-imprint .imprint {
@@ -255,7 +265,6 @@ ot-imprint .imprint-section a {
 ot-contributors {
   display: block;
   width: 100%;
-  max-width: 46rem;
 }
 
 ot-contributors .contributors-wrap {
@@ -433,7 +442,6 @@ ot-contributors .contributor-link:hover i {
 ot-article {
   display: block;
   width: 100%;
-  max-width: 42rem;
 }
 
 ot-article .wrap {
@@ -473,6 +481,29 @@ ot-article .prose {
   line-height: 1.65;
 }
 
+ot-article .prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.25rem auto;
+}
+
+ot-article .prose blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--color-surface-card-border);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--palette-neutral-200) 14%, transparent);
+}
+
+ot-article .prose blockquote > :first-child {
+  margin-top: 0;
+}
+
+ot-article .prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
 ot-article .prose :first-child {
   margin-top: 0;
 }
@@ -483,7 +514,10 @@ ot-article .prose :last-child {
 
 ot-article .prose h1,
 ot-article .prose h2,
-ot-article .prose h3 {
+ot-article .prose h3,
+ot-article .prose h4,
+ot-article .prose h5,
+ot-article .prose h6 {
   color: var(--color-accent);
   margin-top: 1.5rem;
 }
@@ -505,6 +539,35 @@ ot-article .prose pre code {
   padding: 0;
 }
 
+ot-article .prose .article-ref-marker {
+  margin-left: 0.2rem;
+  font-size: 0.78em;
+}
+
+ot-article .prose .article-ref-marker a {
+  text-decoration: none;
+}
+
+ot-article .prose .article-ref-marker a:hover {
+  text-decoration: underline;
+}
+
+ot-article .prose .article-references {
+  margin-top: 1.5rem;
+}
+
+ot-article .prose .article-references h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.15rem;
+}
+
+ot-article .prose .article-references ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: none;
+  padding-left: 0;
+}
+
 /* -----------------------------------------------------------------------------
    ot-blog — lives in light DOM for Font Awesome; Lit cannot attach
    adoptedStyleSheets to HTMLElement, so scoped styles from static styles often
@@ -514,7 +577,6 @@ ot-article .prose pre code {
 ot-blog {
   display: block;
   width: 100%;
-  max-width: 42rem;
 }
 
 ot-blog .wrap {

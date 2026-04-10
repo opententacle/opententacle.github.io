@@ -12,7 +12,7 @@ export class OtFooter extends LitElement {
     return html`
       <footer class="site-footer">
         <nav class="site-footer-nav" aria-label="Site">
-          <a class="site-footer-link" href=${hrefForHome()} @click=${handleInternalNav}>blog</a>
+          <a class="site-footer-link" href=${hrefForHome()} @click=${handleInternalNav}>unpopular opinions</a>
           <span class="site-footer-sep" aria-hidden="true">·</span>
           <a class="site-footer-link" href=${hrefForContributors()} @click=${handleInternalNav}>contributors</a>
         </nav>

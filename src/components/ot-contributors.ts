@@ -29,7 +29,7 @@ export class OtContributors extends LitElement {
   render() {
     return html`
       <section class="contributors-wrap">
-        <a class="contributors-back" href=${hrefForHome()} @click=${handleInternalNav}>← blog</a>
+        <a class="contributors-back" href=${hrefForHome()} @click=${handleInternalNav}>← Unpopular Opinions</a>
         <h1 class="contributors-title">contributors</h1>
         <ul class="contributors-grid" role="list">
           ${contributors.map(
