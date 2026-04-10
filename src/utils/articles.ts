@@ -16,9 +16,26 @@ export interface ArticleEntry {
   raw: string;
   /** Markdown for rendering (metadata block removed). */
   bodyMarkdown: string;
+  /** Source directory for relative markdown links/images. */
+  sourceDir: string;
 }
 
 let cache: ArticleEntry[] | null = null;
+let cacheBySlug: Map<string, ArticleEntry> | null = null;
+
+const NON_MD_ASSET_MODULES = import.meta.glob(
+  "../assets/articles/**/*.{png,jpg,jpeg,gif,webp,avif,svg,bmp,ico,pdf,mp4,webm,ogg,mp3,wav,m4a,txt,csv,json,xml,zip}",
+  {
+    eager: true,
+    import: "default",
+  },
+) as Record<string, string>;
+
+const ARTICLE_ASSET_URLS = new Map<string, string>();
+for (const [path, value] of Object.entries(NON_MD_ASSET_MODULES)) {
+  if (typeof value !== "string") continue;
+  ARTICLE_ASSET_URLS.set(normalizePath(path), value);
+}
 
 /** Leading consecutive `> key: value` lines (OpenTentacle front matter). */
 function parseMetadataBlock(markdown: string): { meta: ArticleMeta; rest: string } {
@@ -63,24 +80,77 @@ function extractCatchline(markdown: string): string | undefined {
   return text || undefined;
 }
 
+function normalizePath(path: string): string {
+  return path
+    .replace(/\\/g, "/")
+    .replace(/\/+/g, "/")
+    .replace(/\/\.\//g, "/");
+}
+
+function normalizeRelativePath(path: string): string {
+  const input = normalizePath(path);
+  const out: string[] = [];
+  for (const part of input.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      if (out.length > 0) out.pop();
+      continue;
+    }
+    out.push(part);
+  }
+  return out.join("/");
+}
+
+function resolvePathFromDir(sourceDir: string, relativeRef: string): string {
+  const base = normalizePath(sourceDir).split("/").filter(Boolean);
+  const ref = normalizePath(relativeRef).split("/").filter(Boolean);
+  const out = [...base];
+  for (const part of ref) {
+    if (part === ".") continue;
+    if (part === "..") {
+      if (out.length > 0) out.pop();
+      continue;
+    }
+    out.push(part);
+  }
+  return out.join("/");
+}
+
+function deriveSlugFromPath(path: string): string | undefined {
+  const normalized = normalizePath(path);
+  const match = normalized.match(/\/([^/]+)\.md$/i);
+  if (!match?.[1]) return undefined;
+  const basename = match[1];
+  if (basename.toLowerCase() !== "index") return basename;
+  const parts = normalized.split("/").filter(Boolean);
+  if (parts.length < 2) return undefined;
+  return parts[parts.length - 2];
+}
+
 export function getArticles(): ArticleEntry[] {
   if (cache) return cache;
 
-  const modules = import.meta.glob("../assets/articles/*.md", {
+  const modules = import.meta.glob("../assets/articles/**/*.md", {
     eager: true,
     query: "?raw",
     import: "default",
   }) as Record<string, string>;
 
   const entries: ArticleEntry[] = [];
+  const usedSlugs = new Set<string>();
   for (const path of Object.keys(modules)) {
-    const match = path.match(/\/([^/]+)\.md$/);
-    if (!match?.[1]) continue;
-    const slug = match[1];
+    const slug = deriveSlugFromPath(path);
+    if (!slug) continue;
+    if (usedSlugs.has(slug)) {
+      console.warn(`[articles] Duplicate article slug "${slug}" from "${path}". Skipping.`);
+      continue;
+    }
+    usedSlugs.add(slug);
     const raw = modules[path];
     if (typeof raw !== "string") continue;
     const { meta } = parseMetadataBlock(raw);
     const bodyMarkdown = stripMetadataBlock(raw);
+    const sourceDir = normalizePath(path.replace(/\/[^/]+$/, ""));
     entries.push({
       slug,
       title: extractTitle(raw, slug),
@@ -88,6 +158,7 @@ export function getArticles(): ArticleEntry[] {
       meta,
       raw,
       bodyMarkdown,
+      sourceDir,
     });
   }
   entries.sort((a, b) => {
@@ -96,6 +167,7 @@ export function getArticles(): ArticleEntry[] {
     return a.slug.localeCompare(b.slug);
   });
   cache = entries;
+  cacheBySlug = new Map(entries.map((entry) => [entry.slug, entry]));
   return entries;
 }
 
@@ -108,4 +180,29 @@ function publishedTimestamp(dateStr: string | undefined): number {
 
 export function getArticleBySlug(slug: string): ArticleEntry | undefined {
   return getArticles().find((a) => a.slug === slug);
+}
+
+function isExternalReference(ref: string): boolean {
+  return /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(ref) || ref.startsWith("//");
+}
+
+export function resolveArticleAssetUrl(slug: string, ref: string): string {
+  const trimmed = ref.trim();
+  if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("/")) return ref;
+  if (trimmed.startsWith("data:") || isExternalReference(trimmed)) return ref;
+
+  const [pathPart, hashPart = ""] = trimmed.split("#", 2);
+  const [cleanPathPart, queryPart = ""] = pathPart.split("?", 2);
+  if (!cleanPathPart) return ref;
+
+  const article = (cacheBySlug ?? new Map()).get(slug) ?? getArticleBySlug(slug);
+  if (!article) return ref;
+
+  const resolvedPath = resolvePathFromDir(article.sourceDir, cleanPathPart);
+  const url = ARTICLE_ASSET_URLS.get(normalizeRelativePath(resolvedPath));
+  if (!url) return ref;
+
+  const query = queryPart ? `?${queryPart}` : "";
+  const hash = hashPart ? `#${hashPart}` : "";
+  return `${url}${query}${hash}`;
 }

@@ -4,7 +4,7 @@ Static blog site for **OpenTentacle**: Markdown articles, contributor profiles, 
 
 ## Features
 
-- **Blog index** — articles loaded from `src/assets/articles/*.md`, sorted by `date` metadata (newest first).
+- **Blog index** — articles loaded recursively from `src/assets/articles/**/*.md`, sorted by `date` metadata (newest first).
 - **Article pages** — Markdown rendered to HTML with metadata chips (date, author, AI-assisted when set); author can link to a contributor profile when it resolves.
 - **Contributors** — profiles and social links in `src/data/contributors.ts`; dedicated route `/contributors` with optional hash anchors (`#contributor-id`).
 - **SPA routing** — paths such as `/article/<slug>` and `/contributors` are handled in the browser; the dev server and production setup serve `index.html` for unknown paths so refreshes and deep links work.
@@ -41,7 +41,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 ├── src/
 │   ├── app.ts              # Root layout, route switch, Font Awesome CSS import
 │   ├── index.css           # Global theme and component styles
-│   ├── assets/articles/    # One .md file per post; filename (without .md) = URL slug
+│   ├── assets/articles/    # Posts in subfolders with optional local assets/images
 │   ├── components/         # Lit custom elements (prefix `ot-`)
 │   ├── data/               # contributors.ts — people shown on /contributors
 │   └── utils/              # Router, article parsing, article meta chips, etc.
@@ -51,7 +51,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 
 ## Articles (Markdown)
 
-1. Add a file under **`src/assets/articles/`**, e.g. `my-post.md`. The **slug** in the URL is the basename: `/article/my-post`.
+1. Add a Markdown file anywhere under **`src/assets/articles/`**, e.g. `2026-05-04/post.md` (or `2026-05-04/index.md`). The **slug** is the markdown basename (`post`) or the folder name when using `index.md`.
 2. Optional **blockquote front matter** at the very top (consecutive `> key: value` lines):
 
    | Key            | Purpose |
@@ -62,6 +62,7 @@ Open the URL Vite prints (usually `http://localhost:5173`).
    | `ai-assisted`  | Shown in metadata when set. |
 
 3. First `# heading` is the **title**. First `##` under it is the **catchline** on the blog card (if present).
+4. Relative links/images inside markdown are resolved from that markdown file's folder, so article-local assets work, e.g. `![Chart](chart.png)` or `[PDF](files/report.pdf)`.
 
 Example:
 

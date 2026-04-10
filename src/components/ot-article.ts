@@ -4,7 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { marked } from "marked";
 import { buildArticleViewMetaItems } from "../utils/article-meta.js";
-import { getArticleBySlug } from "../utils/articles.js";
+import { getArticleBySlug, resolveArticleAssetUrl } from "../utils/articles.js";
 import { handleInternalNav, hrefForHome } from "../utils/router.js";
 
 @customElement("ot-article")
@@ -48,7 +48,21 @@ export class OtArticle extends LitElement {
       return;
     }
     this.notFound = false;
-    const rawHtml = marked.parse(article.bodyMarkdown, { async: false }) as string;
+    const renderer = new marked.Renderer();
+    renderer.link = function ({ href, title, tokens }) {
+      const text = this.parser.parseInline(tokens);
+      const safeHref = cleanHref(resolveArticleAssetUrl(article.slug, href ?? ""));
+      if (!safeHref) return text;
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
+      return `<a href="${escapeHtml(safeHref)}"${titleAttr}>${text}</a>`;
+    };
+    renderer.image = ({ href, title, text }) => {
+      const safeSrc = cleanHref(resolveArticleAssetUrl(article.slug, href ?? ""));
+      if (!safeSrc) return "";
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
+      return `<img src="${escapeHtml(safeSrc)}" alt="${escapeHtml(text)}"${titleAttr}>`;
+    };
+    const rawHtml = marked.parse(article.bodyMarkdown, { async: false, renderer }) as string;
     this.sanitizedHtml = DOMPurify.sanitize(rawHtml);
   }
 
@@ -80,6 +94,22 @@ export class OtArticle extends LitElement {
       </section>
     `;
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function cleanHref(value: string): string {
+  const href = value.trim();
+  if (!href) return "";
+  if (/^javascript:/i.test(href)) return "";
+  return href;
 }
 
 declare global {
