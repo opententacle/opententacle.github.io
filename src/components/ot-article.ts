@@ -7,8 +7,8 @@ import { captureArticleViewed } from "../analytics/posthog.js";
 import { resolveContributorForArticle } from "../data/contributors.js";
 import "./ot-share-links.js";
 import { buildArticleViewMetaItems } from "../utils/article-meta.js";
-import { getArticleBySlug, resolveArticleAssetUrl } from "../utils/articles.js";
-import { handleInternalNav, hrefForHome } from "../utils/router.js";
+import { type ArticleEntry, getArticleBySlug, resolveArticleAssetUrl } from "../utils/articles.js";
+import { base, handleInternalNav, hrefForArticle, hrefForHome } from "../utils/router.js";
 
 @customElement("ot-article")
 export class OtArticle extends LitElement {
@@ -104,6 +104,7 @@ export class OtArticle extends LitElement {
     const metaItems = buildArticleViewMetaItems(article.meta);
     const metaRow = metaItems.length > 0 ? html`<div class="meta article-meta">${metaItems}</div>` : "";
     const noAiSupport = isExplicitlyNotAiAssisted(article.meta.aiAssisted);
+    const jsonLd = buildArticleJsonLd(article);
     return html`
       <section class="wrap">
         <a class="back" href=${hrefForHome()} @click=${handleInternalNav}><i class="fa-solid fa-arrow-left"></i> Unpopular Opinions</a>
@@ -118,10 +119,36 @@ export class OtArticle extends LitElement {
             : ""
         }
         <ot-share-links .slug=${article.slug} .title=${article.title}></ot-share-links>
+        <script type="application/ld+json">
+          ${jsonLd}
+        </script>
         <article class="prose">${unsafeHTML(this.sanitizedHtml)}</article>
       </section>
     `;
   }
+}
+
+function buildArticleJsonLd(article: ArticleEntry): string {
+  const canonical = new URL(hrefForArticle(article.slug), window.location.origin).toString();
+  const image = new URL(`${base}opententacle.png`, window.location.origin).toString();
+  const authorName = resolveContributorForArticle(article.meta)?.name ?? article.meta.author?.trim();
+  const payload: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title,
+    description: article.catchline ?? article.title,
+    mainEntityOfPage: canonical,
+    url: canonical,
+    image,
+    publisher: {
+      "@type": "Organization",
+      name: "OpenTentacle",
+      url: new URL(base, window.location.origin).toString(),
+    },
+  };
+  if (article.meta.date?.trim()) payload.datePublished = article.meta.date.trim();
+  if (authorName) payload.author = { "@type": "Person", name: authorName };
+  return JSON.stringify(payload);
 }
 
 function isExplicitlyNotAiAssisted(value: string | undefined): boolean {
@@ -185,22 +212,28 @@ function buildReferencesHtml(refs: Array<{ href: string; label: string }>): stri
 }
 
 function stripHtml(input: string): string {
-  return input.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return input
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function transformAttributedImages(markdown: string, slug: string): string {
   const imageWithAttrs = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\{([^}]+)\}/g;
-  return markdown.replace(imageWithAttrs, (_m, alt: string, rawSrc: string, title: string | undefined, rawAttrs: string) => {
-    const src = cleanHref(resolveArticleAssetUrl(slug, rawSrc));
-    if (!src) return "";
+  return markdown.replace(
+    imageWithAttrs,
+    (_m, alt: string, rawSrc: string, title: string | undefined, rawAttrs: string) => {
+      const src = cleanHref(resolveArticleAssetUrl(slug, rawSrc));
+      if (!src) return "";
 
-    const attrs = parseImageAttrs(rawAttrs);
-    const widthAttr = attrs.width ? ` width="${escapeHtml(attrs.width)}"` : "";
-    const heightAttr = attrs.height ? ` height="${escapeHtml(attrs.height)}"` : "";
-    const classAttr = attrs.className ? ` class="${escapeHtml(attrs.className)}"` : "";
-    const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
-    return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${titleAttr}${widthAttr}${heightAttr}${classAttr}>`;
-  });
+      const attrs = parseImageAttrs(rawAttrs);
+      const widthAttr = attrs.width ? ` width="${escapeHtml(attrs.width)}"` : "";
+      const heightAttr = attrs.height ? ` height="${escapeHtml(attrs.height)}"` : "";
+      const classAttr = attrs.className ? ` class="${escapeHtml(attrs.className)}"` : "";
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
+      return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${titleAttr}${widthAttr}${heightAttr}${classAttr}>`;
+    },
+  );
 }
 
 function parseImageAttrs(raw: string): { width?: string; height?: string; className?: string } {

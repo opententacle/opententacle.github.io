@@ -105,6 +105,22 @@ The **dev** server uses a small middleware (`spa-dev-fallback`) to mirror the sa
 
 The workflow **`.github/workflows/release.yml`** runs on pushes to **`main`**: `npm ci`, `npm run build`, uploads **`dist`** to GitHub Pages. Ensure the repository’s **Pages** source is set to **GitHub Actions** (or your chosen source) in the repo settings.
 
+### SEO deployment notes
+
+- **Canonical domain**: set a single canonical host (recommended: `https://opententacle.com`) and 301-redirect alternate hosts (`www`, `*.github.io`) to it.
+- **`SITE_URL`** (optional): if set at build time, sitemap and robots use it. If not set, the build reads **`CNAME`** first, then falls back to `GITHUB_REPOSITORY`.
+- Build emits **`dist/sitemap.xml`** and **`dist/robots.txt`** automatically.
+
+## SEO validation checklist
+
+After deployment, validate in this order:
+
+1. Open `https://opententacle.com/sitemap.xml` and confirm article URLs are present.
+2. Open `https://opententacle.com/robots.txt` and confirm sitemap URL matches canonical domain.
+3. In **Google Search Console**, add/verify the `opententacle.com` property and submit sitemap.
+4. Run a few pages through [Rich Results Test](https://search.google.com/test/rich-results) and confirm `BlogPosting`/`WebSite` structured data.
+5. Use Search Console URL Inspection for `/` and at least one `/article/<slug>` and request indexing after major updates.
+
 ### Analytics environment variables
 
 - **`VITE_POSTHOG_KEY`** enables PostHog analytics when set at build time.

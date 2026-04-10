@@ -9,8 +9,9 @@ import "./components/ot-imprint.ts";
 import "./components/ot-modal.ts";
 import "./components/ot-privacy.ts";
 import { captureOutboundLinkClicked, initAnalytics, trackRouteChange } from "./analytics/posthog.js";
-import { APP_NAVIGATE_EVENT, type AppRoute, pathToRoute } from "./utils/router.js";
 import { ModalController } from "./utils/modal.js";
+import { APP_NAVIGATE_EVENT, type AppRoute, pathToRoute } from "./utils/router.js";
+import { applySeo } from "./utils/seo.js";
 
 initAnalytics();
 
@@ -57,8 +58,10 @@ export class OtApp extends LitElement {
   }
 
   private syncRouteFromPath = () => {
+    const nextRoute = pathToRoute(window.location.pathname);
     trackRouteChange(window.location.pathname);
-    this.route = pathToRoute(window.location.pathname);
+    applySeo(nextRoute);
+    this.route = nextRoute;
   };
 
   render() {
@@ -88,7 +91,7 @@ export class OtApp extends LitElement {
                     ? html`<ot-privacy></ot-privacy>`
                     : this.route.kind === "imprint"
                       ? html`<ot-imprint></ot-imprint>`
-                  : html`<ot-blog></ot-blog>`
+                      : html`<ot-blog></ot-blog>`
           }
         </div>
         <ot-footer></ot-footer>

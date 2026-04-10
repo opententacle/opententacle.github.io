@@ -2,7 +2,7 @@ import { html, LitElement } from "lit";
 import { customElement } from "lit/decorators.js";
 import { buildBlogMetaItems } from "../utils/article-meta.js";
 import { getArticles } from "../utils/articles.js";
-import { handleInternalNav, hrefForArticle } from "../utils/router.js";
+import { base, handleInternalNav, hrefForArticle } from "../utils/router.js";
 
 @customElement("ot-blog")
 export class OtBlog extends LitElement {
@@ -15,9 +15,13 @@ export class OtBlog extends LitElement {
 
   render() {
     const articles = getArticles();
+    const websiteJsonLd = buildWebsiteJsonLd();
     return html`
       <section class="wrap">
         <h1 class="title">Unpopular Opinions</h1>
+        <script type="application/ld+json">
+          ${websiteJsonLd}
+        </script>
         ${
           articles.length === 0
             ? html`<p class="empty">No articles yet</p>`
@@ -47,6 +51,16 @@ export class OtBlog extends LitElement {
       </section>
     `;
   }
+}
+
+function buildWebsiteJsonLd(): string {
+  const url = new URL(base, window.location.origin).toString();
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "OpenTentacle",
+    url,
+  });
 }
 
 declare global {
