@@ -328,17 +328,6 @@ export default defineConfig({
       },
     },
     {
-      name: "github-pages-spa-404",
-      writeBundle(options) {
-        const dir = options.dir ?? resolve(process.cwd(), "dist");
-        const indexHtml = resolve(dir, "index.html");
-        const notFoundHtml = resolve(dir, "404.html");
-        if (existsSync(indexHtml)) {
-          copyFileSync(indexHtml, notFoundHtml);
-        }
-      },
-    },
-    {
       name: "prerender-route-html",
       writeBundle(options) {
         const siteUrl = inferSiteUrl();
@@ -358,6 +347,17 @@ export default defineConfig({
           const outPath = outputIndexPathForRoute(dir, route);
           mkdirSync(resolve(outPath, ".."), { recursive: true });
           writeFileSync(outPath, html, "utf8");
+        }
+      },
+    },
+    {
+      name: "github-pages-spa-404",
+      writeBundle(options) {
+        const dir = options.dir ?? resolve(process.cwd(), "dist");
+        const indexHtml = resolve(dir, "index.html");
+        const notFoundHtml = resolve(dir, "404.html");
+        if (existsSync(indexHtml)) {
+          copyFileSync(indexHtml, notFoundHtml);
         }
       },
     },
