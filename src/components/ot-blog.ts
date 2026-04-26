@@ -1,5 +1,6 @@
 import { html, LitElement } from "lit";
 import { customElement } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { buildBlogMetaItems } from "../utils/article-meta.js";
 import { getArticles } from "../utils/articles.js";
 import { base, handleInternalNav, hrefForArticle } from "../utils/router.js";
@@ -19,9 +20,7 @@ export class OtBlog extends LitElement {
     return html`
       <section class="wrap">
         <h1 class="title">Unpopular Opinions</h1>
-        <script type="application/ld+json">
-          ${websiteJsonLd}
-        </script>
+        ${unsafeHTML(`<script type="application/ld+json">${websiteJsonLd}</script>`)}
         ${
           articles.length === 0
             ? html`<p class="empty">No articles yet</p>`

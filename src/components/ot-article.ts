@@ -119,9 +119,7 @@ export class OtArticle extends LitElement {
             : ""
         }
         <ot-share-links .slug=${article.slug} .title=${article.title}></ot-share-links>
-        <script type="application/ld+json">
-          ${jsonLd}
-        </script>
+        ${unsafeHTML(`<script type="application/ld+json">${jsonLd}</script>`)}
         <article class="prose">${unsafeHTML(this.sanitizedHtml)}</article>
       </section>
     `;
