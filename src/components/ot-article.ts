@@ -128,7 +128,7 @@ export class OtArticle extends LitElement {
 
 function buildArticleJsonLd(article: ArticleEntry): string {
   const canonical = new URL(hrefForArticle(article.slug), window.location.origin).toString();
-  const image = new URL(`${base}opententacle.png`, window.location.origin).toString();
+  const image = new URL(`${base}logo.png`, window.location.origin).toString();
   const authorName = resolveContributorForArticle(article.meta)?.name ?? article.meta.author?.trim();
   const payload: Record<string, unknown> = {
     "@context": "https://schema.org",

@@ -168,7 +168,7 @@ function discoverRoutes() {
 function seoPayloadForRoute(route, siteUrl, articleMap) {
   const base = {
     siteName: "OpenTentacle",
-    image: `${siteUrl}/opententacle.png`,
+    image: `${siteUrl}/logo.png`,
   };
   if (route === "/") {
     return {

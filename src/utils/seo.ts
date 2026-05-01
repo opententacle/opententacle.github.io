@@ -6,7 +6,7 @@ import { base, hrefForArticle, hrefForContributors, hrefForHome, hrefForImprint,
 const SITE_NAME = "OpenTentacle";
 const DEFAULT_TITLE = "OpenTentacle";
 const DEFAULT_DESCRIPTION = "OpenTentacle is a static blog for essays, analysis, and unpopular opinions.";
-const DEFAULT_IMAGE = "opententacle.png";
+const DEFAULT_IMAGE = "logo.png";
 
 type SeoPayload = {
   title: string;
